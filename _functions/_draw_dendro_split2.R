@@ -1,0 +1,65 @@
+
+draw_dendro_split2 <- function(unit.compare,agnes.method = "gaverage", flex.par = .5, cut.level=NULL){
+  singles.count = 0
+  singles.list = data.frame(SiteUnit = character(), stringsAsFactors = FALSE)
+  new.unit <- data.frame(SiteUnit = character(), stringsAsFactors = FALSE)
+  compared <- unit.compare 
+  dis.matrix <- bec_dist_matrix(compared) 
+  ss_clst <- agnes(dis.matrix,
+                   diss = TRUE, stand = TRUE,
+                   method = agnes.method, par.method = flex.par)
+  dendro_hc <- as.hclust(ss_clst)
+  dendro_hc.dend <- as.dendrogram(dendro_hc)
+  if (!is.null(cut)){
+    dendro_hc.dend <- cut(dendro_hc.dend, h = cut.level)
+  }
+  n <- length(dendro_hc.dend$lower)
+  for (i in 1:n){
+    dendro_hc.dend.i <- dendro_hc.dend$lower[[i]]
+    n2 <- length(dendro_hc.dend.i)
+    if (n2 == 1) {singles.count = singles.count + 1}
+    if (n2 == 1) {singles.list <- rbind(singles.list, x = setNames(as.data.frame(partition_leaves(dendro_hc.dend.i)), names(singles.list)))}
+    if (n2 == 1) next
+    # plot(dendro_hc.dend.i, main = paste0("Cluster Dendrogram of Site Units: branch ", i, " at hcut = ", h))
+    # }
+    #   dend.co <- stats::cophenetic(dendro_hc.i)
+    # dend.dis <- as.dist(dis.matrix)
+    # cophenetic <- cor(dend.dis, dend.co) %>% round(2)
+    # cophenetic ## shows how well the clusters align with the data >0.7 is considered good
+    # coph_annotation <- data.frame(x = 9, y=.85, label = paste0("Cophenetic:",cophenetic))
+    hcdata <- dendro_data(dendro_hc.dend.i, type = "rectangle")
+    yy <- ggplot() +
+      geom_segment(data = segment(hcdata), 
+                   aes(x = x, y = y, xend = xend, yend = yend)
+      ) +
+      geom_text(data = label(hcdata), 
+                aes(x = x, y = y, label = label, hjust = 0), 
+                size = 3
+      ) +
+      geom_hline(yintercept = .10, linetype = "dashed", color = "red")+
+      geom_hline(yintercept = .20, linetype = "dashed", color = "green")+
+      geom_hline(yintercept = cut.level, linetype = "dashed", color = "purple")+
+      # add value label to hline
+      geom_text(aes(x = 0, y = .07, label = "10%-Subassociation", hjust = 0), angle = 90,color = "red", size = 3)+
+      geom_text(aes(x = 0, y = .20, label = "20%-Association", hjust = 0), angle = 90,color = "green", size = 3)+
+      geom_text(aes(x = 0, y = cut.level, label = paste0(cut.level,"%"), hjust = 0), angle = 90, color = "purple", size = 3)+
+      
+      # add label to graph 
+      # geom_text(data=coph_annotation, aes( x=x, y=y, label=label), 
+      #           color="black", 
+      #           size=3 , angle=0, fontface="bold" ) +
+      # annotate(cophenetic, x = .1, y = .1,
+      #      label = "Cophonetic" , color="orange",
+      #       size=7 , angle=0, fontface="bold")+
+      coord_flip()+
+      scale_y_reverse(limits = c(1, -.3))+
+      labs(x = "", y = "Difference")+
+      theme_minimal()+
+      theme(axis.text.y=element_blank(), axis.title.y = element_blank())+
+      ggtitle(paste0("Cluster Dendrogram of Site Units: branch ", i, " at hcut = ", cut.level))
+    print(yy)
+  }
+  #print(paste0("The total number of site units is ", ss.count))
+  print(paste0("The number of singles at hcut ", cut.level, " is ", singles.count))
+ return(singles.list)
+}
