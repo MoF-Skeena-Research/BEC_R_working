@@ -1,7 +1,6 @@
 create_veg_sum <- function(
     vegdata,
-    siteunit.tbl,
-    siteunit.var = "SiteUnit",
+    siteUnits,
     minconstancy = 60,
     noiseconstancy = 10,
     strata.by = c("Auto","Layer", "Lifeform"),
@@ -18,42 +17,30 @@ create_veg_sum <- function(
     } else if ("Lifeform" %in% names(vegdata)) {
       strata.by <- "Lifeform"
     } else {
-      stop("Auto mode could not find either 'Layer' or 'Lifeform' in vegdata.")
+      stop("Auto mode could not find either 'Layer' or 'Lifeform' in vdat.")
     }
   }
   
-  # --- Apply species lumping ---
-  if (strata.by %in% c("Layer", "Lifeform")) {
+  # --- Apply species lumping depending on strata ---
+  if (strata.by == "Layer") {
+    vegdata <- combine_species(vegdata, lumpfile = lumpfile)
+  } else if (strata.by == "Lifeform") {
     vegdata <- combine_species(vegdata, lumpfile = lumpfile)
   }
   
-  # --- Merge site units using user-specified table and variable ---
+  # --- Merge site units ---
   setDT(vegdata)
-  setDT(siteunit.tbl)
+  vdat <- merge(vegdata, siteUnits, by = "PlotNumber")
+  vdat <- vdat[PlotNumber %in% siteUnits$PlotNumber]
   
-  # Ensure siteunit.tbl has PlotNumber
-  if (!"PlotNumber" %in% names(siteunit.tbl)) {
-    stop("siteunit.tbl must contain a 'PlotNumber' column.")
-  }
+  # --- Keep only species present in each SiteUnit ---
+  vdat <- vdat[, if (.N >= 1) .SD, by = .(SiteUnit, Species)]
   
-  # Ensure siteunit.var exists
-  if (!siteunit.var %in% names(siteunit.tbl)) {
-    stop(paste0("Column '", siteunit.var, "' not found in siteunit.tbl."))
-  }
-  
-  vdat <- merge(vegdata, siteunit.tbl, by = "PlotNumber")
-  
-  # Keep only plots that appear in the siteunit table
-  vdat <- vdat[PlotNumber %in% siteunit.tbl$PlotNumber]
-  
-  # --- Keep only species present in each site unit ---
-  vdat <- vdat[, if (.N >= 1) .SD, by = c(siteunit.var, "Species")]
-  
-  # --- Count plots per site unit ---
-  vdat[, nplots := uniqueN(PlotNumber), by = siteunit.var]
+  # --- Count plots per SiteUnit ---
+  vdat[, nplots := uniqueN(PlotNumber), by = .(SiteUnit)]
   
   # --- Dynamic grouping variable ---
-  group_vars <- c(siteunit.var, "Species", strata.by)
+  group_vars <- c("SiteUnit", "Species", strata.by)
   
   # --- Summaries by strata ---
   vdat <- vdat[, .(

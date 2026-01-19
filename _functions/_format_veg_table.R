@@ -1,7 +1,7 @@
 ##formats a vegetation summary table
 ##types of summary tables: BGC =  site series within a BGC; zonal = comparison of zonal vegtation between BGCs
 #type = "Zonal"
-vsum = vegSum; spp=taxon.lifeform; cons.1 = 70; cons.2 = 50; strata.by = "Auto"; type = NULL
+vsum = vegSum; spp=taxon.lifeform; cons.1 = 70; cons.2 = 50; strata.by = "Auto"; type = NULL; indic.order = indic.order
 
 format_veg_table <- function(
     vsum = vegSum,
@@ -173,7 +173,7 @@ format_veg_table <- function(
   }
   
   vsum <- cast_table(vsum)
-  
+  vsum2 = vsum
   #------------------------------------------------------------
   # 6. Finalize table (ordering, renaming, nPlot row, BGC cleanup)
   #------------------------------------------------------------
@@ -181,7 +181,9 @@ format_veg_table <- function(
     
     # Replace "-remove"
     vsum <- vsum %>% mutate_all(str_replace_all, "-remove", "")
-    
+    # Add lifeform category
+    vsum <- vsum %>%
+      mutate(Lifeform = lifeform_map[as.character(LifeformName)])
     # Optional ordering
     if (exists("indic.order")) {
       vsum <- vsum[order(match(vsum$ScientificName, indic.order$ScientificName)), ]

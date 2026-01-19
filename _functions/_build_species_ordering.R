@@ -1,5 +1,6 @@
 ## order species in table using multipatt from the indicspecies package
 #vdat = veg.dat2; vsum = vegSum; code.lump=lump; siteUnits = su3; BGC = bgc.choose 
+vdat = veg.dat2; vsum = vegSum;  siteUnits = su2; BGC = NULL#code.lump=lump,
 build_species_ordering <- function(vdat, vsum = vegSum,  siteUnits, BGC = NULL ) { #code.lump = NULL,
   # if (!is.null(code.lump)) {
   #   vegdata <- lump_species(vdat, code.lump)

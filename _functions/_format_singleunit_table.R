@@ -1,8 +1,8 @@
 ##formats a vegetation summary table
 ##types of summary tables: BGC =  site series within a BGC; zonal = comparison of zonal vegtation between BGCs
 #type = "Zonal"
-vsum = vegSum; spp=taxon.lifeform; min.cons = 50 ; strata.by = "Layer"; type = "numeric"
-file_name = "AA_D_upland_units2"; file_path = "./vegsum.tables/"
+# vsum = vegSum; spp=taxon.lifeform; min.cons = 50 ; strata.by = "Layer"; type = "numeric"
+# file_name = "AA_D_upland_units2"; file_path = "./vegsum.tables/"
 
 format_singleunit_table <- function(
     vsum = vegSum,

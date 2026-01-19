@@ -72,7 +72,7 @@ create_VGS_table <- function(
   # -------------------------------------------------------------------
   # CASE 1: table_type = "all"  → current behavior
   # -------------------------------------------------------------------
-  if (table_type == "all") {
+  #if (table_type == "all") {
     
     gt_obj <- build_gt(veg.sum.table, title = table.name, unit_col = unit)
     
@@ -80,7 +80,7 @@ create_VGS_table <- function(
     
     return(gt_obj)
   }
-}
+#}
   # -------------------------------------------------------------------
   # CASE 2: table_type = "by_unit"
   # -------------------------------------------------------------------
