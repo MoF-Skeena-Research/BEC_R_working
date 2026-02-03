@@ -1,7 +1,7 @@
 ##formats a vegetation summary table
 ##types of summary tables: BGC =  site series within a BGC; zonal = comparison of zonal vegtation between BGCs
 #type = "Zonal"
-vsum = vegSum; spp=taxon.lifeform; cons.1 = 70; cons.2 = 50; strata.by = "Auto"; type = NULL; indic.order = indic.order
+#vsum = vegSum; spp=taxon.lifeform; cons.1 = 70; cons.2 = 50; strata.by = "Lifeform"; type = NULL; indic.order = indic.order
 
 format_veg_table <- function(
     vsum = vegSum,
@@ -23,14 +23,15 @@ format_veg_table <- function(
     "2" = "Regen",
     "3" = "Shrub",
     "4" = "Shrub",
+    "12" = "Herb",
     "5" = "Herb",
     "6" = "Herb",
     "7" = "Herb",
     "8" = "Herb",
     "9" = "Moss",
     "10" = "Moss",
-    "11" = "Moss",
-    "12" = "Herb"
+    "11" = "Moss"
+
   )
 
   lifeform_names <- c(
@@ -38,16 +39,19 @@ format_veg_table <- function(
     "2" = "Deciduous Tree",
     "3" = "Evergreen Shrub",
     "4" = "Deciduous Shrub",
-    "5" = "Ferns and Allies",
+    "12" = "Dwarf woody plants", 
     "6" = "Graminoids",
     "7" = "Forbs",
+     "5" = "Ferns and Allies",   
     "8" = "Parasitic",
     "9" = "Mosses",
     "10" = "Liverworts",
     "11" = "Lichens",
-    "12" = "Dwarf woody plants",
     "13" = "Macro algae"
   )  
+  
+  strata_order <- c("Tree", "Regen", "Shrub", "Herb", "Moss")
+
   
   #------------------------------------------------------------
   # 1. Encode coverage + constancy into symbol codes
@@ -73,20 +77,27 @@ format_veg_table <- function(
   #------------------------------------------------------------
   # 1b. Grouping logic (Layer / Lifeform / Auto)
   #------------------------------------------------------------
-  group_species <- function(df, mode) {
-    if (mode == "Layer") {
-      df$Group <- df$Layer
-    } else if (mode == "Lifeform") {
-      df$Group <- df$LifeformName
-    } else if (mode == "Auto") {
-      df$Group <- ifelse(df$Layer == "Shrub" & df$Lifeform %in% c(1,2),
-                         "Regen",
-                         df$Layer)
-    } else {
-      stop("Invalid strata.by value.")
+  order_groups <- function(df, strata.by) {
+    
+    if (strata.by == "Layer") {
+      # Layer-based ordering
+      df$Group <- factor(df$Group, levels = strata_order)
+      df <- df[order(df$Group), ]
+      
+    } else if (strata.by == "Lifeform") {
+      # LifeformName-based ordering
+      df$Group <- factor(df$Group, levels = lifeform_names)
+      df <- df[order(df$Group), ]
+      
+    } else if (strata.by == "Auto") {
+      # Auto uses Layer logic (Tree → Regen → Shrub → Herb → Moss)
+      df$Group <- factor(df$Group, levels = strata_order)
+      df <- df[order(df$Group), ]
     }
+    
     df
   }
+  
   
   #------------------------------------------------------------
   # 2. Prepare vsum and harmonize Layer / Lifeform inputs
@@ -106,10 +117,10 @@ format_veg_table <- function(
   # Join spp for Lifeform if missing
   if (has_layer && !has_lifeform) {
     message("Lifeform not found in input; deriving from spp lookup.")
-    # vsum <- vsum %>%
-    #   merge(spp %>% select(ScientificName, Lifeform),
-    #         by = "ScientificName",
-    #         all.x = TRUE)
+    vsum <- vsum %>%
+      merge(spp %>% select(ScientificName, Lifeform),
+            by = "ScientificName",
+            all.x = TRUE)
   }
   
   # Derive Layer from Lifeform if missing
@@ -121,7 +132,7 @@ format_veg_table <- function(
   
   # Add LifeformName
   vsum <- vsum %>%
-    mutate(LifeformName = lifeform_map[as.character(Lifeform)])
+    mutate(LifeformName = lifeform_names[as.character(Lifeform)])
   
   if (any(is.na(vsum$LifeformName))) {
     warning("Some species have missing or unmapped Lifeform values. See saved missing_lifeform.csv for details.")
@@ -134,7 +145,7 @@ format_veg_table <- function(
   }
   
   # Apply strata.by BEFORE Species2 is created
-  vsum <- group_species(vsum, strata.by)
+  #vsum <- group_species(vsum, strata.by)
   
   # Species2 reflects chosen grouping variable
   vsum <- vsum %>%
@@ -174,68 +185,73 @@ format_veg_table <- function(
   
   vsum <- cast_table(vsum)
   vsum2 = vsum
+  
   #------------------------------------------------------------
   # 6. Finalize table (ordering, renaming, nPlot row, BGC cleanup)
   #------------------------------------------------------------
-  finalize_table <- function(vsum, spp, type) {
+  
+  finalize_table <- function(vsum, spp, type, strata.by = NULL) {
     
     # Replace "-remove"
     vsum <- vsum %>% mutate_all(str_replace_all, "-remove", "")
-    # Add lifeform category
-    vsum <- vsum %>%
-      mutate(Lifeform = lifeform_map[as.character(LifeformName)])
-    # Optional ordering
-    if (exists("indic.order")) {
-      vsum <- vsum[order(match(vsum$ScientificName, indic.order$ScientificName)), ]
+    
+    # ------------------------------------------------------------
+    # CASE 1: strata.by == "Layer" → skip LifeformName logic
+    # ------------------------------------------------------------
+    if (!is.null(strata.by) && strata.by == "Layer") {
+      
+      strata_order <- c("Tree", "Regen", "Shrub", "Herb", "Moss")
+      
+      # Order by strata
+      if ("Layer" %in% names(vsum)) {
+        vsum <- vsum %>%
+          mutate(Layer = factor(Layer, levels = strata_order)) %>%
+          arrange(Layer)
+      }
+      
+      # No LifeformName → skip lifeform_map and skip spp join
+      vsum2 <- vsum
+      
     } else {
-      message("No vegetation ordering applied (indic.order not found).")
+      
+      # ------------------------------------------------------------
+      # CASE 2: Normal logic (LifeformName → Lifeform)
+      # ------------------------------------------------------------
+      # Optional species ordering
+      if (exists("indic.order")) {
+        vsum <- vsum[order(match(vsum$ScientificName, indic.order$ScientificName)), ]
+      } else {
+        message("No vegetation ordering applied (indic.order not found).")
+      }
+      
+      # Add lifeform for Auto logic
+      lifeform <- spp %>% select(ScientificName, Lifeform)
+      
+      vsum2 <- vsum %>%
+        left_join(lifeform, by = "ScientificName") %>%
+        relocate(EnglishName, .after = last_col()) %>%
+        select(-Lifeform)
+      
     }
     
-    # Add lifeform for Auto logic
-    lifeform <- spp %>% select(ScientificName, Lifeform)
+    # ------------------------------------------------------------
+    # Add nPlots row
+    # ------------------------------------------------------------
     
-    vsum2 <- vsum %>%
-      left_join(lifeform, by = "ScientificName") %>%
-      relocate(EnglishName, .after = last_col()) %>%
-      select(-Lifeform)
-    
-    # BGC cleanup
-    # if (type == "BGC") {
-    #   colnames(vsum2) <- gsub("109", "101", colnames(vsum2))
-    #   colnames(vsum2) <- gsub(paste0(bgc.choose, "?"), "", colnames(vsum2))
-    #   colnames(vsum2) <- gsub("_", "", colnames(vsum2))
-    # }
-    
-    # wide table: vsum_wide
-    # long table: nplots_long (columns: Unit, nplots)
-    
-    # 1. Create an empty row with the correct number of columns
     plot_row <- as.list(rep("", ncol(vsum2)))
     names(plot_row) <- colnames(vsum2)
     
-    # 2. Fill in only the unit columns
     unit_cols <- intersect(colnames(vsum2), nPlots$SiteUnit)
-    
     plot_row[unit_cols] <- nPlots$nplots[match(unit_cols, nPlots$SiteUnit)]
     
-    # 3. Convert to data.frame
     plot_row <- as.data.frame(plot_row, check.names = FALSE)
     
-    # # Save the correct names
-    # col_names <- names(vsum2)
-    # 
-    # # Remove names from both objects
-    # names(plot_row) <- NULL
-    # names(vsum2)    <- NULL
-    
-    # Bind by position
+    # Bind
     vsum <- rbind(plot_row, vsum2)
-    
-    # Restore names
-    # names(vsum_with_plots) <- col_names
+        return(vsum)
   }
   
-  vsum <- finalize_table(vsum, spp, type)
+  vsum.final <- finalize_table(vsum, spp, type)
   
-  return(vsum)
+  return(vsum.final)
 }

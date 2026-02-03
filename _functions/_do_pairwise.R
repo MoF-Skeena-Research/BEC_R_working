@@ -24,7 +24,8 @@ do_pairwise <- function(veg.dat, su, su.field = "SiteUnit", minimportance = 0, m
                         use.ksi = FALSE, ksi = NULL, ksi.value = 1.5,
                         reduce.lifeform = FALSE, reduced.lifeforms = NULL,
                         reduction = 1, reduced.exceptions = NULL,
-                        minor = 1.0) {
+                        minor = 1.0,
+                        add_vegsum_table= NULL) {
   ### ---Create vegetation summary
   tic()
   su.choice <- su %>% select(SiteUnit)
@@ -39,6 +40,22 @@ do_pairwise <- function(veg.dat, su, su.field = "SiteUnit", minimportance = 0, m
   vegsum <- vegdat3[, .(MeanCov = sum(Cover, na.rm = TRUE) / nplots[1],
                         Constancy = (.N / nplots[1]) * 100, nplots = nplots[1]),
                     by = .(SiteUnit, Species)]
+  
+  if (!is.null(add_vegsum_table)) {
+    #for (i in 1:length(addition_vegsum_tabs)) {
+      #vegsum_add <- addition_vegsum_tabs[[i]]
+      vegsum <- rbind(vegsum, add_vegsum_table)
+    }
+  #   vegsum <- vegsum %>%
+  #     group_by(SiteUnit, Species) %>%
+  #     summarise(
+  #       MeanCov = mean(MeanCov, na.rm = TRUE),
+  #       Constancy = mean(Constancy, na.rm = TRUE),
+  #       nplots = mean(nplots, na.rm = TRUE)
+  #     ) %>%
+  #     ungroup()
+  # }
+      
 
   ## --------Create the analysis set
   vegsum <- as.data.frame(vegsum)

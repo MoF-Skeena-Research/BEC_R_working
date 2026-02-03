@@ -1,6 +1,8 @@
 ##table graphic that shows plot count by edaphic position for each site series 
 ### modify this script to group site series by BGC orderly layout.
 ## see this link for some ideas https://stackoverflow.com/questions/65835639/arrange-gt-tables-side-by-side-or-in-a-grid-or-table-of-tables
+#plot.env; su=su2; bgc.choose = "ESSFwc7"; su.choose = "ESSFwc7_101"
+
 draw_ss_edatope <- function(plot.env, su, bgc.choose) {
   su2 <- su %>%
     filter(bgc == bgc) 
@@ -33,14 +35,15 @@ draw_ss_edatope <- function(plot.env, su, bgc.choose) {
       edatopic_default <- expand.grid(SNR = good_snr, rSMR = good_smr) %>%
         as.data.frame() %>%
         mutate(SiteUnit = su.choose, bgc = bgc.choose, edatope = paste0(rSMR, SNR), edatopic = 0) %>%
-        arrange(SNR, rSMR) %>%
+        arrange(SNR, rSMR) %>% mutate(rSMR=as.character(rSMR)) %>% 
         select(SiteUnit, bgc, SNR, rSMR, edatope, edatopic)
       
       su_working <- bgc_working %>%
         filter(SiteUnit == su.choose) %>%
         filter(SNR %in% good_snr, rSMR %in% good_smr) %>%
-        as.data.frame() %>%
+        as.data.frame() %>% mutate(edatopic = as.integer(edatopic)) %>% 
         arrange(SNR) %>%
+        select(SiteUnit, bgc, SNR, rSMR, edatope, edatopic) %>%
         rbind(edatopic_default) %>%
         group_by(edatope) %>%
         slice_max(edatopic, n = 1) %>%

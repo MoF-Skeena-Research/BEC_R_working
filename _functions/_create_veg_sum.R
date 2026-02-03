@@ -24,7 +24,7 @@ create_veg_sum <- function(
   
   # --- Apply species lumping ---
   if (strata.by %in% c("Layer", "Lifeform")) {
-    vegdata <- combine_species(vegdata, lumpfile = lumpfile)
+    vegdata <- combine_taxa(vegdata, lumpfile = lumpfile)
   }
   
   # --- Merge site units using user-specified table and variable ---
