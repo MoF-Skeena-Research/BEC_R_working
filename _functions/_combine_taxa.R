@@ -14,7 +14,9 @@ combine_taxa <- function(
     } else if ("Layer" %in% names(vegdata)) {
       strata.by <- "Layer"
     } else {
-      stop("Auto mode could not find either 'Lifeform' or 'Layer' in vegdata.")
+      # --- NEW BEHAVIOUR ---
+      # No Lifeform or Layer → no strata grouping
+      strata.by <- NULL
     }
   }
   
@@ -22,8 +24,7 @@ combine_taxa <- function(
   if (!is.null(lumpfile)) {
     setDT(vegdata)[setDT(lumpfile),
                    "Species" := LumpCode,
-                   on = c("Species" = "SppCode")
-    ]
+                   on = c("Species" = "SppCode")]
   }
   
   # --- Remove subtaxa if requested ---
@@ -32,14 +33,25 @@ combine_taxa <- function(
   }
   
   # --- Dynamic grouping ---
-  group_vars <- c("PlotNumber", "Species", strata.by)
-  
-  vegdata2 <- vegdata[, .(Cover = sum(Cover)), by = group_vars]
+  if (is.null(strata.by)) {
+    # No strata variable → group only by PlotNumber + Species
+    vegdata2 <- vegdata[, .(Cover = sum(Cover)), by = .(PlotNumber, Species)]
+  } else {
+    # Normal case with strata
+    group_vars <- c("PlotNumber", "Species", strata.by)
+    vegdata2 <- vegdata[, .(Cover = sum(Cover)), by = group_vars]
+  }
   
   # --- Return tidy tibble ---
-  vegdata_out <- vegdata2 %>%
-    dplyr::select(PlotNumber, Species, Cover, all_of(strata.by)) %>%
-    dplyr::arrange(PlotNumber, Species)
+  if (is.null(strata.by)) {
+    vegdata_out <- vegdata2 %>%
+      dplyr::select(PlotNumber, Species, Cover) %>%
+      dplyr::arrange(PlotNumber, Species)
+  } else {
+    vegdata_out <- vegdata2 %>%
+      dplyr::select(PlotNumber, Species, Cover, all_of(strata.by)) %>%
+      dplyr::arrange(PlotNumber, Species)
+  }
   
   return(vegdata_out)
 }

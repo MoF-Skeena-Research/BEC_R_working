@@ -1,4 +1,4 @@
-vdat = veg.dat.assoc; siteUnits = su.assoc ; minconstancy = 50; noiseconstancy = 25; strata.by = "Auto"
+#vdat = veg.dat.assoc; siteUnits = su.assoc ; minconstancy = 50; noiseconstancy = 25; strata.by = "Auto"
 create_veg_sum_all <- function(vdat, siteUnits, minconstancy = 60, noiseconstancy = 10, strata.by = "Lifeform", minimportance = 0) {
   if (strata.by == "Layer") {
     vdat <- combine_taxa_strata(vegdata = vdat, lumpfile = lump)

@@ -1,43 +1,43 @@
 ## summarizes veg dat using su table
-create_veg_sum_bgc <- function(vdat, siteUnits, BGC = bgc.choose, minconstancy = 50, noiseconstancy = 10, minimportance = 0, strata.by = "Layer") {
+create_veg_sum_bgc <- function(vegdata, siteunit.tbl, BGC = bgc.choose, minconstancy = 50, noiseconstancy = 10, minimportance = 0, strata.by = "Layer") {
   if (strata.by == "Layer") {
-    vdat <- combine_taxa_strata(vdat, lump = lump)
+    vegdata <- combine_taxa_strata(vegdata, lump = lump)
   } else if (strata.by == "Lifeform") {
-    vdat <- vdat <- lump_species_lifeform(vdat, lump = lump)
+    vegdata <- vegdata <- lump_species_lifeform(vegdata, lump = lump)
   }
 
-  vdat <- merge(vdat, siteUnits, by = "PlotNumber")
-  setDT(vdat)
-  vdat <- vdat[PlotNumber %in% siteUnits$PlotNumber, ]
-  # vdat <- vdat %>% filter(bgc %in% BGC)
-  vdat <- vdat[bgc %in% BGC, ]
+  vegdata <- merge(vegdata, siteunit.tbl, by = "PlotNumber")
+  setDT(vegdata)
+  vegdata <- vegdata[PlotNumber %in% siteunit.tbl$PlotNumber, ]
+  # vegdata <- vegdata %>% filter(bgc %in% BGC)
+  vegdata <- vegdata[bgc %in% BGC, ]
 ## remove trees in moss layer
-  # vdat <-  vdat  %>% filter(!Species %in% tree_seedlings)
-  # vdat <-  vdat  %>% filter(!(Species %in% trees & Layer == "Moss"))
+  # vegdata <-  vegdata  %>% filter(!Species %in% tree_seedlings)
+  # vegdata <-  vegdata  %>% filter(!(Species %in% trees & Layer == "Moss"))
 
 #veg.dat2 <- lump_species2(vegdata = vegdata, lump, use.subtaxa = FALSE)
   
-  vdat <- vdat[, if (.N > 0) .SD, by = .(SiteUnit, Species)]
-  vdat[, nplots := length(unique(PlotNumber)), by = .(SiteUnit)]
+  vegdata <- vegdata[, if (.N > 0) .SD, by = .(SiteUnit, Species)]
+  vegdata[, nplots := length(unique(PlotNumber)), by = .(SiteUnit)]
   if (strata.by == "Layer") {
-    vdat <- vdat[, .(
+    vegdata <- vegdata[, .(
       MeanCov = sum(Cover, na.rm = TRUE) / unique(nplots), # should this just be mean, is NA assumed to be 0?
       Constancy = (.N / unique(nplots)) * 100,
       nplots = unique(nplots),
       importance = (sum(Cover, na.rm = TRUE) / unique(nplots))^(1/2) * (.N / unique(nplots))
     ), by = .(SiteUnit, Species, Layer)]
   } else if (strata.by == "Lifeform") {
-    vdat <- vdat[, .(
+    vegdata <- vegdata[, .(
       MeanCov = sum(Cover, na.rm = TRUE) / unique(nplots), # should this just be mean, is NA assumed to be 0?
       Constancy = (.N / unique(nplots)) * 100,
       nplots = unique(nplots),
       importance = (sum(Cover, na.rm = TRUE) / unique(nplots))^(1/2) * (.N / unique(nplots))
     ), by = .(SiteUnit, Species, Lifeform)]
   }
-  vdat[, maxcons := max(Constancy), by = .(Species)]
-  vdat[, maximportance := max(importance), by = .(Species)]
-  vdat <- vdat[maxcons >= minconstancy, ]
-  vdat <- vdat[Constancy >= noiseconstancy, ]
-  vdat <- vdat[importance >= minimportance, ]
+  vegdata[, maxcons := max(Constancy), by = .(Species)]
+  vegdata[, maximportance := max(importance), by = .(Species)]
+  vegdata <- vegdata[maxcons >= minconstancy, ]
+  vegdata <- vegdata[Constancy >= noiseconstancy, ]
+  vegdata <- vegdata[importance >= minimportance, ]
 }
 

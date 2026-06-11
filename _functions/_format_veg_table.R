@@ -20,7 +20,7 @@ format_veg_table <- function(
   #------------------------------------------------------------
   lifeform_map <- c(
     "1" = "Tree",
-    "2" = "Regen",
+    "2" = "Tree",
     "3" = "Shrub",
     "4" = "Shrub",
     "12" = "Herb",
@@ -56,24 +56,24 @@ format_veg_table <- function(
   #------------------------------------------------------------
   # 1. Encode coverage + constancy into symbol codes
   #------------------------------------------------------------
- 
-   encode_veg_sum <- function(coverage, constancy) {
-    black <- "n"; grey <- "l"; star <- "v"
-    char <- black
-    if (constancy < cons.1) char <- grey
-    if (constancy < cons.2) char <- star
-    
-    color <- "remove"
-    
-    data.table::fcase(
-      coverage <   1, sprintf("%s-%s", strrep(char, 1), color),
-      coverage <   3, sprintf("%s-%s", strrep(char, 2), color),
-      coverage <  10, sprintf("%s-%s", strrep(char, 3), color),
-      coverage <  25, sprintf("%s-%s", strrep(char, 4), color),
-      coverage < 100, sprintf("%s-%s", strrep(char, 5), color),
-      default = strrep(char, 6)
-    )
-   }
+ ## use sourced funtion
+   # encode_veg_sum <- function(coverage, constancy) {
+   #  black <- "n"; grey <- "v"; star <- "l"
+   #  char <- black
+   #  if (constancy < cons.1) char <- grey
+   #  if (constancy < cons.2) char <- star
+   #  
+   #  color <- "remove"
+   #  
+   #  data.table::fcase(
+   #    coverage <   1, sprintf("%s-%s", strrep(char, 1), color),
+   #    coverage <   3, sprintf("%s-%s", strrep(char, 2), color),
+   #    coverage <  10, sprintf("%s-%s", strrep(char, 3), color),
+   #    coverage <  25, sprintf("%s-%s", strrep(char, 4), color),
+   #    coverage < 100, sprintf("%s-%s", strrep(char, 5), color),
+   #    default = strrep(char, 6)
+   #  )
+   # }
   #------------------------------------------------------------
   # 1b. Grouping logic (Layer / Lifeform / Auto)
   #------------------------------------------------------------

@@ -29,8 +29,11 @@ combined_su <- function(db){
   all_su <- lapply(su_tables, function(tbl) {
     df <- dbReadTable(conn = correlation, name = tbl)
     df$DataSource <- tbl
+    df$db <- db
+    df <- df %>% dplyr::select(PlotNumber, SiteUnit, DataSource, db)
     return(df)
   })
+ 
   names(all_su) <- su_tables
   
   dbDisconnect(correlation)
@@ -45,7 +48,7 @@ combined_su <- function(db){
     mutate(bgc = gsub(" ", "", bgc, fixed = TRUE))
   
   su <- SU %>%
-    select(PlotNumber, SiteUnit, bgc, DataSource)
+    select(PlotNumber, SiteUnit, bgc, DataSource, db)
   
   su$SiteUnit.orig <- su$SiteUnit
   

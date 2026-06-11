@@ -1,20 +1,22 @@
 ## pair-wise comparison of vegetation summary data
 
 # veg.dat = veg.dat2
-# su = su_updated
-# su.field = "Step1_Group"
-# minimportance = 0
-# minconstancy = 50
-# noiseconstancy = 10
-#  minplots = 1
-# minor = 1
-# use.ksi = FALSE
-# ksi = key.site.indicators
-# ksi.value = 1.5
+# su = su_working
+# su.field = "SiteUnit"
+# minimportance   = 0.1
+# minconstancy    = 60
+# noiseconstancy  = 10
+# minplots        = 1
+# minor           = 1
+# use.ksi         = FALSE
+# ksi             = key.site.indicators
+# ksi.value       = 1.5
 # reduce.lifeform = TRUE
 # reduced.lifeforms = reduced.lifeforms
-# reduction = .1
+# reduction       = 0.1
 # reduced.exceptions = reduced.exceptions
+# add_vegsum_table = usa_units
+# minplots = 5
 # mindiff = .1
 # mindd = 0.35
 
@@ -143,39 +145,41 @@ do_pairwise <- function(veg.dat, su, su.field = "SiteUnit", minimportance = 0, m
     mutate(unit.diag.sum = sum(diagnostic.potential))
   vegsum <- vegsum %>%
     dplyr::group_by(SiteUnit) %>%
-    mutate(n_constants = sum(!is.na(constant_type)))
+    mutate(n_constants = sum(!is.na(constant_type))) %>% data.table()
 
 #vegsum <- vegsum %>% dplyr::filter(SiteUnit %in% c("CWHdm3_101", "CWHdm3_103"))
   
   ### ________________DO PAIR-WISE Comparison_______
 
   ## build pairs
-  pairs <- unique(vegsum$SiteUnit) %>%
-    combn(m = 2) %>%
-    t() %>%
-    data.frame() %>%
-    dplyr::rename(Unit1 = 1, Unit2 = 2) %>%
-    arrange(Unit1)
-  setDT(pairs)
-  setDT(vegsum)
-  setDT(taxon.lifeform)
-
+ setDT(vegsum)
+  setDT(taxon.lifeform)  
+  
+  pairs <- unique(vegsum$SiteUnit) |>
+    combn(m = 2) |>
+    t() |>
+    as.data.table()
+  
+  setnames(pairs, c("Unit1", "Unit2"))
+  setorder(pairs, Unit1)
+  
+  
   vegsum.pairs1 <- pairs[vegsum, on = c("Unit1" = "SiteUnit"), allow.cartesian = TRUE]
   vegsum.pairs2 <- pairs[vegsum, on = c("Unit2" = "SiteUnit"), allow.cartesian = TRUE]
 
   # vegsum.pairs both ways merged
   vegsum.pairs <- merge(vegsum.pairs1, vegsum.pairs2, by = c("Unit1", "Unit2", "Species"), all = TRUE)
   vegsum.pairs <- vegsum.pairs %>% mutate_if(is.numeric, replace_na, replace = 0)
-  vegsum.pairs <- vegsum.pairs %>% filter(!is.na(Unit1), !is.na(Unit2))
+  vegsum.pairs <- vegsum.pairs %>% filter(!is.na(Unit1), !is.na(Unit2)) %>% data.table()
   # add taxon.lifeform
-  vegsum.pairs <- merge(vegsum.pairs, taxon.lifeform, by.x = c("Species"), by.y = c("Code"))
+  vegsum.pairs <- merge(vegsum.pairs, taxon.lifeform, by.x = c("Species"), by.y = c("Code"), allow.cartesian = TRUE)
 
   setDT(vegsum.pairs)[, c("cov.diff", "const.diff") := .(MeanCov.x - MeanCov.y, Constancy.x - Constancy.y)]
   setkey(vegsum.pairs, "Unit1", "Unit2", "Species")
   ## calculate shared diagnostic potential
   vegsum.pairs[, `:=`(
     shared.diag = pmin(diagnostic.potential.x, diagnostic.potential.y, na.rm = TRUE)
-  ), by = .(Unit1, Unit2, Species)]
+  ), by = .(Unit1, Unit2, Species), allow.cartesian = TRUE]
   # Differential
   ## assigns differential type based on cut-off ranges
   # const_cut <- c(30, 50, 70, 101)
